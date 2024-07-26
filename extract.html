@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <title>SurveyMonkey Extractor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+        }
+        #output {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            overflow-x: auto;
+        }
+        button {
+            margin-top: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            table-layout: auto;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: left;
+            position: relative;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .copy-btn {
+            font-size: 12px;
+            padding: 2px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            color: blue;
+            text-decoration: underline;
+            display: block;
+            margin-top: 10px;
+        }
+        #copy-banner {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #4CAF50;
+            color: white;
+            text-align: center;
+            padding: 10px 0;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div id="copy-banner">Copied to clipboard!</div>
+    <h1>SurveyMonkey Extractor</h1>
+    <p>Paste the HTML content of your SurveyMonkey survey below:</p>
+    <textarea id="surveyHTML" placeholder="Paste the HTML content here"></textarea>
+    <button onclick="extractSurvey()">Extract</button>
+    <div id="output">
+        <!-- Extracted questions and options will be displayed here -->
+    </div>
+
+    <script>
+        function extractSurvey() {
+            const htmlContent = document.getElementById('surveyHTML').value;
+            
+            // Parsing the provided HTML content
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+            
+            let tableContent = '<table><tr><th>Question Number</th><th>Question</th><th>Question Options</th></tr>';
+            const questions = doc.querySelectorAll('.question-row');
+            questions.forEach((questionRow, index) => {
+                const questionElement = questionRow.querySelector('.question-title-container');
+                if (questionElement) {
+                    const questionNumber = index + 1;
+                    const questionText = questionElement.innerText.trim().replace(/^\*\s*\d+\.\s*/, '').replace(/\s+/g, ' ');
+                    const options = Array.from(questionRow.querySelectorAll('.user-generated'))
+                                        .map(el => el.innerText.trim())
+                                        .filter(text => text.length > 0 && text !== questionText)
+                                        .join('<br>');
+                    tableContent += `
+                        <tr>
+                            <td>${questionNumber}</td>
+                            <td>
+                                ${questionText}
+                                <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                            </td>
+                            <td>
+                                ${options}
+                                <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                            </td>
+                        </tr>`;
+                }
+            });
+            tableContent += '</table>';
+
+            document.getElementById('output').innerHTML = tableContent;
+        }
+
+        function copyToClipboard(button) {
+            const text = button.parentElement.innerText.replace('Copy', '').trim();
+            navigator.clipboard.writeText(text).then(() => {
+                const banner = document.getElementById('copy-banner');
+                banner.style.display = 'block';
+                setTimeout(() => {
+                    banner.style.display = 'none';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
